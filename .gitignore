@@ -1,0 +1,7 @@
+**/*.env
+tmp
+**/appconfig.ts
+**/node_modules
+**/logs
+**/package-lock.json
+**/yanr-loock.json
