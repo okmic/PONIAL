@@ -4,11 +4,14 @@ import type { LoginFormProps, LoginFormData, LoginFormErrors } from './types'
 export const LoginForm: React.FC<LoginFormProps> = ({
   onSubmit,
   isLoading = false,
-  error = null
+  error = null,
+  mode = 'signin'
 }) => {
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
+    name: '',
+    confirmPassword: '',
     remember: false
   })
 
@@ -29,6 +32,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         if (!value) return 'Пароль обязателен'
         if (value.length < 6) return 'Минимум 6 символов'
         break
+      case 'name':
+        if (mode === 'signup' && !value) return 'Имя обязательно'
+        break
+      case 'confirmPassword':
+        if (mode === 'signup' && !value) return 'Подтвердите пароль'
+        if (mode === 'signup' && value !== formData.password) return 'Пароли не совпадают'
+        break
     }
     return undefined
   }
@@ -47,6 +57,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       setErrors(prev => ({
         ...prev,
         [name]: error
+      }))
+    }
+
+    if (name === 'password' && touched.has('confirmPassword') && mode === 'signup') {
+      const confirmError = validateField('confirmPassword', formData.confirmPassword!)
+      setErrors(prev => ({
+        ...prev,
+        confirmPassword: confirmError
       }))
     }
   }
@@ -71,11 +89,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     e.preventDefault()
 
     const newErrors: LoginFormErrors = {}
-    Object.keys(formData).forEach(key => {
-      if (key !== 'remember') {
-        const error = validateField(key, formData[key as keyof LoginFormData] as string)
-        if (error) newErrors[key as keyof LoginFormErrors] = error
-      }
+    const fieldsToValidate = mode === 'signin' 
+      ? ['email', 'password']
+      : ['name', 'email', 'password', 'confirmPassword']
+
+    fieldsToValidate.forEach(key => {
+      const error = validateField(key, formData[key as keyof LoginFormData] as string)
+      if (error) newErrors[key as keyof LoginFormErrors] = error
     })
 
     setErrors(newErrors)
@@ -86,8 +106,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       return
     }
 
-    onSubmit(formData)
+    const submitData = mode === 'signin' 
+      ? { email: formData.email, password: formData.password, remember: formData.remember }
+      : { name: formData.name, email: formData.email, password: formData.password, remember: formData.remember }
+
+    onSubmit(submitData)
   }
+
+  useEffect(() => {
+    setErrors({})
+    setTouched(new Set())
+  }, [mode])
 
   useEffect(() => {
     if (error) {
@@ -105,6 +134,67 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         ${shake ? 'animate-shake' : ''}
       `}
     >
+      {mode === 'signup' && (
+        <div className="space-y-2">
+          <label 
+            htmlFor="name" 
+            className={`
+              block text-sm font-bold uppercase tracking-wide
+              transition-colors duration-300
+              ${focusedField === 'name' ? 'text-[#00E5B0]' : 'text-[#F5F0E8]'}
+              ${errors.name ? 'text-[#FF3B30]' : ''}
+              ${!focusedField && !errors.name ? 'opacity-80' : ''}
+            `}
+          >
+            Имя
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              disabled={isLoading}
+              placeholder="Иван Иванов"
+              className={`
+                w-full px-6 py-4 rounded-full
+                font-medium text-[#F5F0E8] placeholder-[#F5F0E8]/40
+                transition-all duration-300
+                outline-none border-2
+                ${errors.name 
+                  ? 'border-[#FF3B30] bg-[#FF3B30]/10' 
+                  : focusedField === 'name'
+                    ? 'border-[#00E5B0] bg-white/10'
+                    : 'border-transparent bg-white/10'
+                }
+                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+                ${!errors.name && !focusedField ? 'hover:border-[#00E5B0]/30 hover:bg-white/15' : ''}
+              `}
+            />
+            <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
+              <div className={`
+                w-2 h-2 rounded-full
+                transition-all duration-300
+                ${formData.name && !errors.name 
+                  ? 'bg-[#00E5B0] animate-pulse' 
+                  : errors.name 
+                    ? 'bg-[#FF3B30]' 
+                    : 'bg-[#F5F0E8]/30'
+                }
+              `} />
+            </div>
+          </div>
+          {errors.name && (
+            <p className="text-sm text-[#FF3B30] mt-2 px-6 animate-fadeIn">
+              {errors.name}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="space-y-2">
         <label 
           htmlFor="email" 
@@ -228,6 +318,67 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         )}
       </div>
 
+      {mode === 'signup' && (
+        <div className="space-y-2">
+          <label 
+            htmlFor="confirmPassword" 
+            className={`
+              block text-sm font-bold uppercase tracking-wide
+              transition-colors duration-300
+              ${focusedField === 'confirmPassword' ? 'text-[#00E5B0]' : 'text-[#F5F0E8]'}
+              ${errors.confirmPassword ? 'text-[#FF3B30]' : ''}
+              ${!focusedField && !errors.confirmPassword ? 'opacity-80' : ''}
+            `}
+          >
+            Подтверждение пароля
+          </label>
+          <div className="relative">
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              disabled={isLoading}
+              placeholder="••••••••"
+              className={`
+                w-full px-6 py-4 rounded-full
+                font-medium text-[#F5F0E8] placeholder-[#F5F0E8]/40
+                transition-all duration-300
+                outline-none border-2
+                ${errors.confirmPassword 
+                  ? 'border-[#FF3B30] bg-[#FF3B30]/10' 
+                  : focusedField === 'confirmPassword'
+                    ? 'border-[#00E5B0] bg-white/10'
+                    : 'border-transparent bg-white/10'
+                }
+                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+                ${!errors.confirmPassword && !focusedField ? 'hover:border-[#00E5B0]/30 hover:bg-white/15' : ''}
+              `}
+            />
+            <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
+              <div className={`
+                w-2 h-2 rounded-full
+                transition-all duration-300
+                ${formData.confirmPassword && !errors.confirmPassword && formData.password === formData.confirmPassword
+                  ? 'bg-[#00E5B0] animate-pulse' 
+                  : errors.confirmPassword 
+                    ? 'bg-[#FF3B30]' 
+                    : 'bg-[#F5F0E8]/30'
+                }
+              `} />
+            </div>
+          </div>
+          {errors.confirmPassword && (
+            <p className="text-sm text-[#FF3B30] mt-2 px-6 animate-fadeIn">
+              {errors.confirmPassword}
+            </p>
+          )}
+        </div>
+      )}
+
       {error && (
         <div className="
           p-4 rounded-full
@@ -243,7 +394,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         type="submit"
         disabled={isLoading}
         className={`
-          w-full py-5 px-8 rounded-full
+          cursor-pointer w-full py-5 px-8 rounded-full
           font-black text-lg uppercase tracking-wider
           bg-[#00E5B0] text-[#0B1A33]
           transition-all duration-300
@@ -253,7 +404,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         `}
       >
         <span className="relative z-10">
-          {isLoading ? 'ВХОД...' : 'ПОНЯЛ, ВОЙТИ'}
+          {isLoading ? 'ПОДОЖДИТЕ...' : mode === 'signin' ? 'ПОНЯЛ, ВОЙТИ' : 'ПОНЯЛ, СОЗДАТЬ'}
         </span>
         
         {isLoading && (
