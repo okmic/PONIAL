@@ -1,27 +1,36 @@
 import React, { useState, useEffect } from 'react'
-import type { LoginFormProps, LoginFormData, LoginFormErrors } from './types'
+import type { SignUpFormProps, SignUpFormData, SignUpFormErrors } from './types'
 
-export const LoginForm: React.FC<LoginFormProps> = ({
+export const SignUpForm: React.FC<SignUpFormProps> = ({
   onSubmit,
   isLoading = false,
-  error = null,
-  mode = 'signin'
+  error = null
 }) => {
-  const [formData, setFormData] = useState<LoginFormData>({
+  const [formData, setFormData] = useState<SignUpFormData>({
+    vin: '',
+    name: '',
     email: '',
     password: '',
-    name: '',
     confirmPassword: '',
-    remember: false
   })
 
-  const [errors, setErrors] = useState<LoginFormErrors>({})
+  const [errors, setErrors] = useState<SignUpFormErrors>({})
   const [touched, setTouched] = useState<Set<string>>(new Set())
   const [shake, setShake] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
 
   const validateField = (name: string, value: string): string | undefined => {
     switch (name) {
+      case 'vin':
+        if (!value) return 'VIN автомобиля обязателен'
+        if (value.length < 17) return 'VIN должен содержать 17 символов'
+        if (value.length > 17) return 'VIN должен содержать 17 символов'
+        if (!/^[A-HJ-NPR-Z0-9]{17}$/i.test(value)) return 'Неверный формат VIN'
+        break
+      case 'name':
+        if (!value) return 'Имя обязательно'
+        if (value.length < 2) return 'Минимум 2 символа'
+        break
       case 'email':
         if (!value) return 'Email обязателен'
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
@@ -32,12 +41,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         if (!value) return 'Пароль обязателен'
         if (value.length < 6) return 'Минимум 6 символов'
         break
-      case 'name':
-        if (mode === 'signup' && !value) return 'Имя обязательно'
-        break
       case 'confirmPassword':
-        if (mode === 'signup' && !value) return 'Подтвердите пароль'
-        if (mode === 'signup' && value !== formData.password) return 'Пароли не совпадают'
+        if (!value) return 'Подтвердите пароль'
+        if (value !== formData.password) return 'Пароли не совпадают'
         break
     }
     return undefined
@@ -60,8 +66,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       }))
     }
 
-    if (name === 'password' && touched.has('confirmPassword') && mode === 'signup') {
-      const confirmError = validateField('confirmPassword', formData.confirmPassword!)
+    if (name === 'password' && touched.has('confirmPassword')) {
+      const confirmError = validateField('confirmPassword', formData.confirmPassword)
       setErrors(prev => ({
         ...prev,
         confirmPassword: confirmError
@@ -88,14 +94,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const newErrors: LoginFormErrors = {}
-    const fieldsToValidate = mode === 'signin' 
-      ? ['email', 'password']
-      : ['name', 'email', 'password', 'confirmPassword']
+    const newErrors: SignUpFormErrors = {}
+    const fieldsToValidate = ['vin', 'name', 'email', 'password', 'confirmPassword']
 
     fieldsToValidate.forEach(key => {
-      const error = validateField(key, formData[key as keyof LoginFormData] as string)
-      if (error) newErrors[key as keyof LoginFormErrors] = error
+      const error = validateField(key, formData[key as keyof SignUpFormData] as string)
+      if (error) newErrors[key as keyof SignUpFormErrors] = error
     })
 
     setErrors(newErrors)
@@ -106,17 +110,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       return
     }
 
-    const submitData = mode === 'signin' 
-      ? { email: formData.email, password: formData.password, remember: formData.remember }
-      : { name: formData.name, email: formData.email, password: formData.password, remember: formData.remember }
-
-    onSubmit(submitData)
+    onSubmit({
+      vin: formData.vin,
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+    })
   }
-
-  useEffect(() => {
-    setErrors({})
-    setTouched(new Set())
-  }, [mode])
 
   useEffect(() => {
     if (error) {
@@ -134,66 +134,124 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         ${shake ? 'animate-shake' : ''}
       `}
     >
-      {mode === 'signup' && (
-        <div className="space-y-2">
-          <label 
-            htmlFor="name" 
+      <div className="space-y-2">
+        <label 
+          htmlFor="vin" 
+          className={`
+            block text-sm font-bold uppercase tracking-wide
+            transition-colors duration-300
+            ${focusedField === 'vin' ? 'text-[#00E5B0]' : 'text-[#F5F0E8]'}
+            ${errors.vin ? 'text-[#FF3B30]' : ''}
+            ${!focusedField && !errors.vin ? 'opacity-80' : ''}
+          `}
+        >
+          VIN автомобиля
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            id="vin"
+            name="vin"
+            value={formData.vin}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            disabled={isLoading}
+            placeholder="XTA210990Y1234567"
+            maxLength={17}
             className={`
-              block text-sm font-bold uppercase tracking-wide
-              transition-colors duration-300
-              ${focusedField === 'name' ? 'text-[#00E5B0]' : 'text-[#F5F0E8]'}
-              ${errors.name ? 'text-[#FF3B30]' : ''}
-              ${!focusedField && !errors.name ? 'opacity-80' : ''}
+              w-full px-6 py-4 rounded-full
+              font-medium text-[#F5F0E8] placeholder-[#F5F0E8]/40
+              transition-all duration-300
+              outline-none border-2
+              ${errors.vin 
+                ? 'border-[#FF3B30] bg-[#FF3B30]/10' 
+                : focusedField === 'vin'
+                  ? 'border-[#00E5B0] bg-white/10'
+                  : 'border-transparent bg-white/10'
+              }
+              ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+              ${!errors.vin && !focusedField ? 'hover:border-[#00E5B0]/30 hover:bg-white/15' : ''}
             `}
-          >
-            Имя
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              disabled={isLoading}
-              placeholder="Иван Иванов"
-              className={`
-                w-full px-6 py-4 rounded-full
-                font-medium text-[#F5F0E8] placeholder-[#F5F0E8]/40
-                transition-all duration-300
-                outline-none border-2
-                ${errors.name 
-                  ? 'border-[#FF3B30] bg-[#FF3B30]/10' 
-                  : focusedField === 'name'
-                    ? 'border-[#00E5B0] bg-white/10'
-                    : 'border-transparent bg-white/10'
-                }
-                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-                ${!errors.name && !focusedField ? 'hover:border-[#00E5B0]/30 hover:bg-white/15' : ''}
-              `}
-            />
-            <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
-              <div className={`
-                w-2 h-2 rounded-full
-                transition-all duration-300
-                ${formData.name && !errors.name 
-                  ? 'bg-[#00E5B0] animate-pulse' 
-                  : errors.name 
-                    ? 'bg-[#FF3B30]' 
-                    : 'bg-[#F5F0E8]/30'
-                }
-              `} />
-            </div>
+          />
+          <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
+            <div className={`
+              w-2 h-2 rounded-full
+              transition-all duration-300
+              ${formData.vin && !errors.vin 
+                ? 'bg-[#00E5B0] animate-pulse' 
+                : errors.vin 
+                  ? 'bg-[#FF3B30]' 
+                  : 'bg-[#F5F0E8]/30'
+              }
+            `} />
           </div>
-          {errors.name && (
-            <p className="text-sm text-[#FF3B30] mt-2 px-6 animate-fadeIn">
-              {errors.name}
-            </p>
-          )}
         </div>
-      )}
+        {errors.vin && (
+          <p className="text-sm text-[#FF3B30] mt-2 px-6 animate-fadeIn">
+            {errors.vin}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <label 
+          htmlFor="name" 
+          className={`
+            block text-sm font-bold uppercase tracking-wide
+            transition-colors duration-300
+            ${focusedField === 'name' ? 'text-[#00E5B0]' : 'text-[#F5F0E8]'}
+            ${errors.name ? 'text-[#FF3B30]' : ''}
+            ${!focusedField && !errors.name ? 'opacity-80' : ''}
+          `}
+        >
+          Имя
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            disabled={isLoading}
+            placeholder="Иван Иванов"
+            className={`
+              w-full px-6 py-4 rounded-full
+              font-medium text-[#F5F0E8] placeholder-[#F5F0E8]/40
+              transition-all duration-300
+              outline-none border-2
+              ${errors.name 
+                ? 'border-[#FF3B30] bg-[#FF3B30]/10' 
+                : focusedField === 'name'
+                  ? 'border-[#00E5B0] bg-white/10'
+                  : 'border-transparent bg-white/10'
+              }
+              ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+              ${!errors.name && !focusedField ? 'hover:border-[#00E5B0]/30 hover:bg-white/15' : ''}
+            `}
+          />
+          <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
+            <div className={`
+              w-2 h-2 rounded-full
+              transition-all duration-300
+              ${formData.name && !errors.name 
+                ? 'bg-[#00E5B0] animate-pulse' 
+                : errors.name 
+                  ? 'bg-[#FF3B30]' 
+                  : 'bg-[#F5F0E8]/30'
+              }
+            `} />
+          </div>
+        </div>
+        {errors.name && (
+          <p className="text-sm text-[#FF3B30] mt-2 px-6 animate-fadeIn">
+            {errors.name}
+          </p>
+        )}
+      </div>
 
       <div className="space-y-2">
         <label 
@@ -318,66 +376,64 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         )}
       </div>
 
-      {mode === 'signup' && (
-        <div className="space-y-2">
-          <label 
-            htmlFor="confirmPassword" 
+      <div className="space-y-2">
+        <label 
+          htmlFor="confirmPassword" 
+          className={`
+            block text-sm font-bold uppercase tracking-wide
+            transition-colors duration-300
+            ${focusedField === 'confirmPassword' ? 'text-[#00E5B0]' : 'text-[#F5F0E8]'}
+            ${errors.confirmPassword ? 'text-[#FF3B30]' : ''}
+            ${!focusedField && !errors.confirmPassword ? 'opacity-80' : ''}
+          `}
+        >
+          Подтверждение пароля
+        </label>
+        <div className="relative">
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            disabled={isLoading}
+            placeholder="••••••••"
             className={`
-              block text-sm font-bold uppercase tracking-wide
-              transition-colors duration-300
-              ${focusedField === 'confirmPassword' ? 'text-[#00E5B0]' : 'text-[#F5F0E8]'}
-              ${errors.confirmPassword ? 'text-[#FF3B30]' : ''}
-              ${!focusedField && !errors.confirmPassword ? 'opacity-80' : ''}
+              w-full px-6 py-4 rounded-full
+              font-medium text-[#F5F0E8] placeholder-[#F5F0E8]/40
+              transition-all duration-300
+              outline-none border-2
+              ${errors.confirmPassword 
+                ? 'border-[#FF3B30] bg-[#FF3B30]/10' 
+                : focusedField === 'confirmPassword'
+                  ? 'border-[#00E5B0] bg-white/10'
+                  : 'border-transparent bg-white/10'
+              }
+              ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+              ${!errors.confirmPassword && !focusedField ? 'hover:border-[#00E5B0]/30 hover:bg-white/15' : ''}
             `}
-          >
-            Подтверждение пароля
-          </label>
-          <div className="relative">
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              disabled={isLoading}
-              placeholder="••••••••"
-              className={`
-                w-full px-6 py-4 rounded-full
-                font-medium text-[#F5F0E8] placeholder-[#F5F0E8]/40
-                transition-all duration-300
-                outline-none border-2
-                ${errors.confirmPassword 
-                  ? 'border-[#FF3B30] bg-[#FF3B30]/10' 
-                  : focusedField === 'confirmPassword'
-                    ? 'border-[#00E5B0] bg-white/10'
-                    : 'border-transparent bg-white/10'
-                }
-                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-                ${!errors.confirmPassword && !focusedField ? 'hover:border-[#00E5B0]/30 hover:bg-white/15' : ''}
-              `}
-            />
-            <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
-              <div className={`
-                w-2 h-2 rounded-full
-                transition-all duration-300
-                ${formData.confirmPassword && !errors.confirmPassword && formData.password === formData.confirmPassword
-                  ? 'bg-[#00E5B0] animate-pulse' 
-                  : errors.confirmPassword 
-                    ? 'bg-[#FF3B30]' 
-                    : 'bg-[#F5F0E8]/30'
-                }
-              `} />
-            </div>
+          />
+          <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
+            <div className={`
+              w-2 h-2 rounded-full
+              transition-all duration-300
+              ${formData.confirmPassword && !errors.confirmPassword && formData.password === formData.confirmPassword
+                ? 'bg-[#00E5B0] animate-pulse' 
+                : errors.confirmPassword 
+                  ? 'bg-[#FF3B30]' 
+                  : 'bg-[#F5F0E8]/30'
+              }
+            `} />
           </div>
-          {errors.confirmPassword && (
-            <p className="text-sm text-[#FF3B30] mt-2 px-6 animate-fadeIn">
-              {errors.confirmPassword}
-            </p>
-          )}
         </div>
-      )}
+        {errors.confirmPassword && (
+          <p className="text-sm text-[#FF3B30] mt-2 px-6 animate-fadeIn">
+            {errors.confirmPassword}
+          </p>
+        )}
+      </div>
 
       {error && (
         <div className="
@@ -404,7 +460,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         `}
       >
         <span className="relative z-10">
-          {isLoading ? 'ПОДОЖДИТЕ...' : mode === 'signin' ? 'ПОНЯЛ, ВОЙТИ' : 'ПОНЯЛ, СОЗДАТЬ'}
+          {isLoading ? 'ПОДОЖДИТЕ...' : 'ПОНЯЛ, СОЗДАТЬ'}
         </span>
         
         {isLoading && (

@@ -1,13 +1,14 @@
-import { useEffect } from "react"
 import { useSelector } from "react-redux"
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useEffect } from "react"
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import type { RootState } from "./store/store"
 import { ThemeProvider } from "./components/providers/ThemeProvider"
 import { DashboardLayout } from "./components/Layout/DashboardLayout"
 import { useInitializeApp } from "./hooks/useInitializeApp"
 import { Toaster } from "react-hot-toast"
 import LoadingSpinner from "./components/UI/LoadingSpinner"
-import LoginPage from "./pages/Login"
+import { SignInPage } from "./pages/Signin"
+import { SignUpPage } from "./pages/Signup"
 
 function MainApp() {
   const auth = useSelector((s: RootState) => s.auth)
@@ -25,14 +26,10 @@ function MainApp() {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fff]">
+      <div className="min-h-screen flex items-center justify-center bg-[#0B1A33]">
         <LoadingSpinner />
       </div>
     )
-  }
-
-  if (auth.authStatus === "notAuth" || !auth.user) {
-    return <LoginPage />
   }
 
   return (
@@ -45,15 +42,19 @@ function MainApp() {
       />
       <div className="min-h-screen transition-all duration-300">
         <Routes>
-          {auth.authStatus === "auth" && (
+          {auth.authStatus === "auth" && auth.user ? (
             <Route element={<DashboardLayout />}>
-              {(auth.user!.role === "admin") && (
-                <>
-                  <Route path="/" element={<>hello</>} />
-                </>
+              {auth.user.role === "admin" && (
+                <Route path="/" element={<>hello</>} />
               )}
               <Route path="*" element={<h1>NOT FOUND</h1>} />
             </Route>
+          ) : (
+            <>
+              <Route path="/signin" element={<SignInPage />} />
+              <Route path="/signup" element={<SignUpPage />} />
+              <Route path="*" element={<Navigate to="/signin" replace />} />
+            </>
           )}
         </Routes>
       </div>
