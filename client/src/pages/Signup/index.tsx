@@ -11,7 +11,7 @@ export const SignUpPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (data: { name: string; email: string; password: string; }) => {
+  const handleSubmit = async (data: { name: string; email: string; password: string; vin: string }) => {
     setIsLoading(true)
     setError(null)
 
@@ -20,6 +20,7 @@ export const SignUpPage: React.FC = () => {
         name: data.name,
         email: data.email,
         password: data.password,
+        vin: data.vin,
         role: "user"
       })
       notifications.success('Регистрация прошла успешно!')

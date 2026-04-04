@@ -27,7 +27,7 @@ class ApiAuthService {
         })
         .catch(e => handlerError(e))
     }
-    async signup(payload: { name: string, email: string, password: string, role: "admin" | "user" }) {
+    async signup(payload: { name: string, email: string, password: string, role: "admin" | "user", vin: string }) {
         return await this.axiosInstance.post<any>(
             `/api/v1/auth/signup`,
             {...payload, adminSecret: appconfig.adminSecret }

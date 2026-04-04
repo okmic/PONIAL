@@ -18,7 +18,7 @@ export const SignInPage: React.FC = () => {
     try {
       await apiAuthService.signin(data)
       notifications.success('Вход выполнен успешно!')
-      navigate('/dashboard')
+      navigate('/')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка входа'
       notifications.error(errorMessage)
