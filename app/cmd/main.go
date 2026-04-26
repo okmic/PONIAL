@@ -12,7 +12,7 @@ func main() {
 	if err := database.Connect(cfg); err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	println("dsad")
+
 	defer database.Close()
 	if err := database.Migrate(); err != nil {
 		log.Fatal("Failed to migrate database:", err)

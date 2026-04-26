@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast"
 import LoadingSpinner from "./components/UI/LoadingSpinner"
 import { SignInPage } from "./pages/Signin"
 import { SignUpPage } from "./pages/Signup"
+import SettingsPage from "./pages/Settings"
 
 function MainApp() {
   const auth = useSelector((s: RootState) => s.auth)
@@ -45,14 +46,27 @@ function MainApp() {
           {auth.authStatus === "auth" && auth.user ? (
             <Route element={<DashboardLayout />}>
               {auth.user.role === "admin" && (
-                <Route path="/" element={<>hello</>} />
+                <>
+
+                <Route path="/" element={<>
+                  Hello
+                
+                </>} />
+                
+
+                
+                </>
+                
               )}
+
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<h1>NOT FOUND</h1>} />
             </Route>
           ) : (
             <>
               <Route path="/signin" element={<SignInPage />} />
               <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/signin" replace />} />
             </>
           )}
