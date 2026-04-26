@@ -21,12 +21,10 @@ type Config struct {
 }
 
 type Server struct {
-	config             *Config
-	router             *gin.Engine
-	pingController     *controllers.PingController
-	usersController    *controllers.UsersController
-	yandexAiController *controllers.YandexAIController
-	wpController       *controllers.WorkspaceController
+	config          *Config
+	router          *gin.Engine
+	pingController  *controllers.PingController
+	usersController *controllers.UsersController
 }
 
 func New(config *Config) *Server {
@@ -53,34 +51,21 @@ func New(config *Config) *Server {
 	if db == nil {
 		log.Fatal("Database connection is not initialized. Make sure database.Connect() was called before server.New()")
 	}
-	wpRepo := repositories.NewWorkspaceRepository(db)
 	userRepo := repositories.NewUserRepository(db)
-
-	userService := services.NewUserService(userRepo, wpRepo)
-	wpService := services.NewWorkspaceService(wpRepo, userRepo)
-
-	wpController := controllers.NewWorkspaceController(wpService)
+	userService := services.NewUserService(userRepo)
 	usersController := controllers.NewUsersController(userService)
 
-	yandexAiRepo := repositories.NewYandexAIRepository(db)
-	yandexAiService := services.NewYandexAIService(yandexAiRepo)
-	yandexAIController := controllers.NewYandexAIController(yandexAiService)
-
 	return &Server{
-		config:             config,
-		router:             router,
-		pingController:     controllers.NewPingController(),
-		usersController:    usersController,
-		yandexAiController: yandexAIController,
-		wpController:       wpController,
+		config:          config,
+		router:          router,
+		pingController:  controllers.NewPingController(),
+		usersController: usersController,
 	}
 }
 
 func (s *Server) SetupRoutes() {
 	routes.SetupPingRoutes(s.router, s.pingController)
 	routes.SetupUsersRoutes(s.router, s.usersController)
-	routes.SetupYandexAIRoutes(s.router, s.yandexAiController)
-	routes.SetupWorkspaceRoutes(s.router, s.wpController)
 	s.router.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{
 			"error":   "Route not found",

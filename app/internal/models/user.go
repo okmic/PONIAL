@@ -21,7 +21,7 @@ type User struct {
 	Name       string         `gorm:"type:varchar(100);not null" json:"name"`
 	Email      string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"email"`
 	Password   string         `gorm:"type:varchar(255);not null" json:"-"`
-	Vin   	   string         `gorm:"type:varchar(255);not null" json:"-"`
+	Vin        string         `gorm:"type:varchar(255);not null" json:"-"`
 	Role       Role           `gorm:"type:varchar(20);default:'user';not null" json:"role"`
 	UserHeadID *int64         `gorm:"type:int;default:NULL" json:"user_head_id"`
 	CreatedAt  time.Time      `gorm:"autoCreateTime" json:"created_at"`
@@ -33,7 +33,7 @@ type UserSignupRequest struct {
 	Name        string `json:"name" binding:"required,min=2,max=100"`
 	Email       string `json:"email" binding:"required,email"`
 	Password    string `json:"password" binding:"required,min=6"`
-	Vin		    string `json:"vin" binding:"required,min=10"`
+	Vin         string `json:"vin" binding:"required,min=10"`
 	AdminSecret string `json:"adminSecret" binding:"required,min=2,max=100"`
 }
 
@@ -52,7 +52,7 @@ type UserCreateRequest struct {
 	Email      string `json:"email" binding:"required,email"`
 	Password   string `json:"password" binding:"required,min=6"`
 	Role       Role   `json:"role" binding:"required,oneof=user manager head root"`
-	Vin		   string `json:"vin" binding:"required,min=10"`
+	Vin        string `json:"vin" binding:"required,min=10"`
 	UserHeadID *int64 `json:"user_head_id"`
 }
 
@@ -61,20 +61,19 @@ type UserUpdateRequest struct {
 	Email      string `json:"email" binding:"omitempty,email"`
 	Password   string `json:"password" binding:"omitempty,min=6"`
 	Role       Role   `json:"role" binding:"omitempty,oneof=user manager head root"`
-	Vin		   string `json:"vin" binding:"required,min=10"`
+	Vin        string `json:"vin" binding:"required,min=10"`
 	UserHeadID *int64 `json:"user_head_id"`
 }
 
 type UserResponse struct {
-	ID         int64              `json:"id"`
-	Name       string             `json:"name"`
-	Email      string             `json:"email"`
-	Role       Role               `json:"role"`
-	Vin		   string			  `json:"vin"`
-	UserHeadID *int64             `json:"user_head_id,omitempty"`
-	Workspace  *WorkspaceResponse `json:"workspace,omitempty"`
-	CreatedAt  time.Time          `json:"created_at"`
-	UpdatedAt  time.Time          `json:"updated_at"`
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	Role       Role      `json:"role"`
+	Vin        string    `json:"vin"`
+	UserHeadID *int64    `json:"user_head_id,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 func (u *User) HashPassword(password string) error {
@@ -97,7 +96,7 @@ func (u *User) ToResponse() UserResponse {
 		Name:       u.Name,
 		Email:      u.Email,
 		Role:       u.Role,
-		Vin:		u.Vin,
+		Vin:        u.Vin,
 		UserHeadID: u.UserHeadID,
 		CreatedAt:  u.CreatedAt,
 		UpdatedAt:  u.UpdatedAt,

@@ -64,8 +64,6 @@ func Migrate() error {
 
 	return DB.AutoMigrate(
 		&models.User{},
-		&models.YandexAI{},
-		&models.Workspace{},
 	)
 }
 

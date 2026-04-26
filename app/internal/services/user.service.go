@@ -28,14 +28,12 @@ type UserListResponse struct {
 }
 
 type userService struct {
-	userRepo      repositories.UserRepository
-	workspaceRepo repositories.WorkspaceRepository
+	userRepo repositories.UserRepository
 }
 
-func NewUserService(userRepo repositories.UserRepository, workspaceRepo repositories.WorkspaceRepository) UserService {
+func NewUserService(userRepo repositories.UserRepository) UserService {
 	return &userService{
-		userRepo:      userRepo,
-		workspaceRepo: workspaceRepo,
+		userRepo: userRepo,
 	}
 }
 
@@ -56,17 +54,9 @@ func (s *userService) Signup(req *models.UserSignupRequest) (*models.AuthRespons
 		return nil, err
 	}
 
-	var workspace *models.Workspace
-	if user.Role == models.RoleHead {
-		workspaces, _ := s.workspaceRepo.FindByUserHeadID(user.ID)
-		if len(workspaces) > 0 {
-			workspace = &workspaces[0]
-		}
-	}
-
 	response := &models.AuthResponse{
 		Token: token,
-		User:  s.userToResponse(user, workspace),
+		User:  s.userToResponse(user),
 	}
 
 	return response, nil
@@ -85,28 +75,9 @@ func (s *userService) Signin(req *models.UserSigninRequest) (*models.AuthRespons
 		return nil, err
 	}
 
-	var workspace *models.Workspace
-	if user.Role == models.RoleHead {
-		workspaces, _ := s.workspaceRepo.FindByUserHeadID(user.ID)
-		if len(workspaces) > 0 {
-			workspace = &workspaces[0]
-		}
-	} else if user.Role == models.RoleUser || user.Role == models.RoleManager {
-		var userHeadID int64
-		if user.UserHeadID != nil {
-			userHeadID = *user.UserHeadID
-		} else {
-			userHeadID = user.ID
-		}
-		workspaces, _ := s.workspaceRepo.FindByUserHeadID(userHeadID)
-		if len(workspaces) > 0 {
-			workspace = &workspaces[0]
-		}
-	}
-
 	response := &models.AuthResponse{
 		Token: token,
-		User:  s.userToResponse(user, workspace),
+		User:  s.userToResponse(user),
 	}
 	return response, nil
 }
@@ -142,40 +113,13 @@ func (s *userService) CreateUser(req *models.UserCreateRequest, creatorRole mode
 		return nil, err
 	}
 
-	var workspace *models.Workspace
-	var createdWorkspace *models.Workspace
-
-	if creatorRole == models.RoleRoot && req.Role == models.RoleHead {
-		workspaceReq := &models.WorkspaceCreateRequest{
-			Name:            user.Name + " Workspace",
-			UserHeadId:      user.ID,
-			TgBotToken:      "",
-			IncludesUsersId: []int64{user.ID},
-		}
-
-		createdWorkspace = workspaceReq.ToWorkspace()
-		if err := s.workspaceRepo.Create(createdWorkspace); err != nil {
-			return nil, err
-		}
-		workspace = createdWorkspace
-	}
-
 	if creatorRole == models.RoleHead && req.Role == models.RoleUser {
-		workspaces, err := s.workspaceRepo.FindByUserHeadID(creatorID)
 		if err != nil {
-			return s.userToResponsePtr(user, nil), nil
-		}
-
-		if len(workspaces) > 0 {
-			workspaceItem := workspaces[0]
-			if err := s.workspaceRepo.AddUserToWorkspace(workspaceItem.ID, user.ID); err != nil {
-				return s.userToResponsePtr(user, nil), nil
-			}
-			workspace = &workspaceItem
+			return s.userToResponsePtr(user), nil
 		}
 	}
 
-	return s.userToResponsePtr(user, workspace), nil
+	return s.userToResponsePtr(user), nil
 }
 
 func (s *userService) GetUser(id int64) (*models.UserResponse, error) {
@@ -184,27 +128,7 @@ func (s *userService) GetUser(id int64) (*models.UserResponse, error) {
 		return nil, errors.New("user not found")
 	}
 
-	var workspace *models.Workspace
-	switch user.Role {
-	case models.RoleHead:
-		workspaces, _ := s.workspaceRepo.FindByUserHeadID(user.ID)
-		if len(workspaces) > 0 {
-			workspace = &workspaces[0]
-		}
-	case models.RoleUser, models.RoleManager:
-		var userHeadID int64
-		if user.UserHeadID != nil {
-			userHeadID = *user.UserHeadID
-		} else {
-			userHeadID = user.ID
-		}
-		workspaces, _ := s.workspaceRepo.FindByUserHeadID(userHeadID)
-		if len(workspaces) > 0 {
-			workspace = &workspaces[0]
-		}
-	}
-
-	return s.userToResponsePtr(user, workspace), nil
+	return s.userToResponsePtr(user), nil
 }
 
 func (s *userService) UpdateUser(id int64, req *models.UserUpdateRequest) (*models.UserResponse, error) {
@@ -219,15 +143,7 @@ func (s *userService) UpdateUser(id int64, req *models.UserUpdateRequest) (*mode
 		return nil, err
 	}
 
-	var workspace *models.Workspace
-	if user.Role == models.RoleHead {
-		workspaces, _ := s.workspaceRepo.FindByUserHeadID(user.ID)
-		if len(workspaces) > 0 {
-			workspace = &workspaces[0]
-		}
-	}
-
-	return s.userToResponsePtr(user, workspace), nil
+	return s.userToResponsePtr(user), nil
 }
 
 func (s *userService) DeleteUser(id int64) error {
@@ -268,29 +184,6 @@ func (s *userService) ListUsers(limit, offset int, role, name string, currentUse
 	}
 
 	userResponses := make([]models.UserResponse, len(users))
-	for i, user := range users {
-		var workspace *models.Workspace
-
-		if user.Role == models.RoleHead {
-			workspaces, _ := s.workspaceRepo.FindByUserHeadID(user.ID)
-			if len(workspaces) > 0 {
-				workspace = &workspaces[0]
-			}
-		} else if user.Role == models.RoleUser || user.Role == models.RoleManager {
-			var userHeadID int64
-			if user.UserHeadID != nil {
-				userHeadID = *user.UserHeadID
-			} else {
-				userHeadID = user.ID
-			}
-			workspaces, _ := s.workspaceRepo.FindByUserHeadID(userHeadID)
-			if len(workspaces) > 0 {
-				workspace = &workspaces[0]
-			}
-		}
-
-		userResponses[i] = s.userToResponse(&user, workspace)
-	}
 
 	totalPages := int(total) / limit
 	if int(total)%limit > 0 {
@@ -306,26 +199,19 @@ func (s *userService) ListUsers(limit, offset int, role, name string, currentUse
 	}, nil
 }
 
-func (s *userService) userToResponse(user *models.User, workspace *models.Workspace) models.UserResponse {
-	var safeWorkspace *models.WorkspaceResponse
-	if workspace != nil {
-		workspaceResp := workspace.ToSafeResponse()
-		safeWorkspace = &workspaceResp
-	}
-
+func (s *userService) userToResponse(user *models.User) models.UserResponse {
 	return models.UserResponse{
 		ID:         user.ID,
 		Name:       user.Name,
 		Email:      user.Email,
 		Role:       user.Role,
 		UserHeadID: user.UserHeadID,
-		Workspace:  safeWorkspace,
 		CreatedAt:  user.CreatedAt,
 		UpdatedAt:  user.UpdatedAt,
 	}
 }
 
-func (s *userService) userToResponsePtr(user *models.User, workspace *models.Workspace) *models.UserResponse {
-	response := s.userToResponse(user, workspace)
+func (s *userService) userToResponsePtr(user *models.User) *models.UserResponse {
+	response := s.userToResponse(user)
 	return &response
 }
